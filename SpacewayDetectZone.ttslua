@@ -1,0 +1,72 @@
+-- Get needed GUIDS from Global
+scout_GUID = Global.getVar("scout_GUID")
+print(scout_GUID)
+-- Make variables for object references
+scout = getObjectFromGUID(scout_GUID)
+
+function onLoad(save_state)
+  print("Zone locked and loaded")
+end
+
+-- SETUP: Move zone under the table at the start
+self.setPosition({0, -10, 0})
+curr_HL = {}
+
+-- The scout calls for the movement of the zone
+function moveSpacewayDetectZone(params)
+  -- Get position and move to it
+  self.setPosition(params.collided_object_pos)
+  -- Wait 5 frames before calling spacewayValidation()
+  Wait.frames(spacewayValidation, 5)
+end
+
+-- Get all the nearest spaceways and test them for connectivity
+function spacewayValidation()
+  curr_HL = {}
+  for _, foundSpaceway in ipairs(self.getObjects()) do
+    -- Declare the Vector point and rotation of the currently detected object
+    local target_pos = foundSpaceway.getPosition()
+    local target_rot = foundSpaceway.getRotation()
+    local start_pos = self.getPosition()
+    target_pos[2] = start_pos[2]
+    -- Draw the vector and save it
+    local vec_toTarget = Vector.between(start_pos, target_pos)
+    --extract the y values of both, and convert the vector angle if needed
+    local vec_toTarget_y = vec_toTarget:heading('y')
+    if vec_toTarget_y < 0 then
+      vec_toTarget_y = vec_toTarget_y + 360
+    end
+    local target_rot_y = target_rot[2]
+    -- Now we manually clamp the rotation value to what we want
+    target_rot_y = math.floor(target_rot_y/60+0.5)*60
+    vec_toTarget_y = math.floor(vec_toTarget_y/60+0.5)*60
+    -- Now let's check the difference. It'll return 180 or 0 if valid.
+    local result = math.abs(vec_toTarget_y - target_rot_y)
+    if result == 180 or result == 0 then
+      local cast_tiles = Physics.cast({
+        origin       = self.getPosition(),
+        direction    = vec_toTarget,
+        type         = 2,
+        size         = {1,1,1},
+        debug        = false,
+      })
+      local void_count = 0
+      for _, obj in ipairs(cast_tiles) do
+        if obj.hit_object.hasTag("Space") and void_count < 2 then
+          table.insert(curr_HL, obj.hit_object)
+          void_count = void_count + 1
+        elseif obj.hit_object.hasTag("spaceway") and void_count < 2 then
+          table.insert(curr_HL, obj.hit_object)
+        end
+      end
+    end
+  end
+  for _, v in ipairs(curr_HL) do
+    v.highlightOn("Red")
+  end
+end
+
+function startDiscovery()
+  --TODO actual discovery
+  print("Started discovery!")
+end
