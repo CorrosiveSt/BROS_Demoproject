@@ -14,13 +14,14 @@ self.setPosition(reset_pos)
 -- The dropped ship calls for tile check, passing arguments in a table:
 --[[
 params = {
-  collided_object_pos = info.collision_object.getPosition(),
-  ship_range = 2
+  Vector start_pos,
+  String target_tag,
+  int range
 }
 --]]
-function validateSpaceways(params)
-  -- Move to the collided tile
-  self.setPosition(params.collided_object_pos)
+function sendPulse_HL(params)
+  -- Move zone to the specified tile
+  self.setPosition(params.start_pos)
   -- Wait 5 frames before starting the validation process
   -- NOTE that the argument for the amount of frames in under this all
   Wait.frames(function()
@@ -31,9 +32,8 @@ function validateSpaceways(params)
     local target_pos = foundSpaceway.getPosition()
     local target_rot = foundSpaceway.getRotation()
     -- Normalize y, so the cast keeps level throughout
-    local start_pos = self.getPosition()
-    target_pos[2] = start_pos[2]
-    local vec_toTarget = Vector.between(start_pos, target_pos)
+    target_pos[2] = params.start_pos[2]
+    local vec_toTarget = Vector.between(params.start_pos, target_pos)
     --extract the y rotation of both, and convert the vector angle (180 -> 360)
     local vec_toTarget_y = vec_toTarget:heading('y')
     if vec_toTarget_y < 0 then
@@ -47,7 +47,7 @@ function validateSpaceways(params)
     local result = math.abs(vec_toTarget_y - target_rot_y)
     if result == 180 or result == 0 then
       local cast_tiles = Physics.cast({
-        origin       = self.getPosition(),
+        origin       = params.start_pos,
         direction    = vec_toTarget,
         type         = 2,
         size         = {1,1,1},
@@ -73,9 +73,7 @@ function validateSpaceways(params)
   end
   -- It looks funky here but trust me bro, this ends the Wait.frames function
   end, 5)
-
 end
-
 
 function startDiscovery()
   --TODO actual discovery
