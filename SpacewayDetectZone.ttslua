@@ -1,46 +1,49 @@
--- Get needed GUIDS from Global
+-- INIT: Get needed GUIDS from Global
 scout_GUID = Global.getVar("scout_GUID")
 print(scout_GUID)
--- Make variables for object references
+-- INIT: Make variables for object references
 scout = getObjectFromGUID(scout_GUID)
 
-function onLoad(save_state)
-  print("Zone locked and loaded")
-end
-
--- SETUP: Move zone under the table at the start
-self.setPosition({0, -10, 0})
+-- SETUP: init scriptwide tables & variables
 curr_HL = {}
+reset_pos = {0, -10, 0}
 
--- The scout calls for the movement of the zone
-function moveSpacewayDetectZone(params)
-  -- Get position and move to it
+-- SETUP: reset position to under the table
+self.setPosition(reset_pos)
+
+-- The dropped ship calls for tile check, passing arguments in a table:
+--[[
+params = {
+  collided_object_pos = info.collision_object.getPosition(),
+  ship_range = 2
+}
+--]]
+function validateSpaceways(params)
+  -- Move to the collided tile
   self.setPosition(params.collided_object_pos)
-  -- Wait 5 frames before calling spacewayValidation()
-  Wait.frames(spacewayValidation, 5)
-end
-
--- Get all the nearest spaceways and test them for connectivity
-function spacewayValidation()
+  -- Wait 5 frames before starting the validation process
+  -- NOTE that the argument for the amount of frames in under this all
+  Wait.frames(function()
+  -- Flush curr_HL
   curr_HL = {}
   for _, foundSpaceway in ipairs(self.getObjects()) do
-    -- Declare the Vector point and rotation of the currently detected object
+    -- Declare needed vars...
     local target_pos = foundSpaceway.getPosition()
     local target_rot = foundSpaceway.getRotation()
+    -- Normalize y, so the cast keeps level throughout
     local start_pos = self.getPosition()
     target_pos[2] = start_pos[2]
-    -- Draw the vector and save it
     local vec_toTarget = Vector.between(start_pos, target_pos)
-    --extract the y values of both, and convert the vector angle if needed
+    --extract the y rotation of both, and convert the vector angle (180 -> 360)
     local vec_toTarget_y = vec_toTarget:heading('y')
     if vec_toTarget_y < 0 then
       vec_toTarget_y = vec_toTarget_y + 360
     end
     local target_rot_y = target_rot[2]
-    -- Now we manually clamp the rotation value to what we want
+    -- Now we manually clamp the rotation value to increments of 60
     target_rot_y = math.floor(target_rot_y/60+0.5)*60
     vec_toTarget_y = math.floor(vec_toTarget_y/60+0.5)*60
-    -- Now let's check the difference. It'll return 180 or 0 if valid.
+    -- Now let's check the difference, and start a cast in the direction if valid
     local result = math.abs(vec_toTarget_y - target_rot_y)
     if result == 180 or result == 0 then
       local cast_tiles = Physics.cast({
@@ -50,7 +53,10 @@ function spacewayValidation()
         size         = {1,1,1},
         debug        = false,
       })
+      -- For checking till the next void tile:
       local void_count = 0
+      -- Continue adding to curr_HL until a Void tile has been hit
+      -- NOTE: Hit twice, since the cast also counts in the collided tile
       for _, obj in ipairs(cast_tiles) do
         if obj.hit_object.hasTag("Space") and void_count < 2 then
           table.insert(curr_HL, obj.hit_object)
@@ -61,10 +67,15 @@ function spacewayValidation()
       end
     end
   end
+  -- After all objects are checked, highlight every object listed
   for _, v in ipairs(curr_HL) do
     v.highlightOn("Red")
   end
+  -- It looks funky here but trust me bro, this ends the Wait.frames function
+  end, 5)
+
 end
+
 
 function startDiscovery()
   --TODO actual discovery

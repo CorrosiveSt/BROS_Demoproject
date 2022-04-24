@@ -32,7 +32,7 @@ function onCollisionEnter(info)
       collided_object_pos = info.collision_object.getPosition(),
       ship_range = 2
     }
-    spacewayDetectZone.call("moveSpacewayDetectZone", params)
+    spacewayDetectZone.call("validateSpaceways", params)
   elseif collided == 0 then
     -- If collided, but not with a void tile, skip moving the Discovery zone, and set collided to 1
     collided = 1
