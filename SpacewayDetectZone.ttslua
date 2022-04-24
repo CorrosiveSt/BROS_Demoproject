@@ -12,16 +12,14 @@ end
 self.setPosition({0, -10, 0})
 curr_HL = {}
 
+
+
 -- The scout calls for the movement of the zone
 function moveSpacewayDetectZone(params)
   -- Get position and move to it
   self.setPosition(params.collided_object_pos)
   -- Wait 5 frames before calling spacewayValidation()
-  Wait.frames(spacewayValidation, 5)
-end
-
--- Get all the nearest spaceways and test them for connectivity
-function spacewayValidation()
+  Wait.frames(function()
   curr_HL = {}
   for _, foundSpaceway in ipairs(self.getObjects()) do
     -- Declare the Vector point and rotation of the currently detected object
@@ -64,7 +62,9 @@ function spacewayValidation()
   for _, v in ipairs(curr_HL) do
     v.highlightOn("Red")
   end
+  end, 5)
 end
+
 
 function startDiscovery()
   --TODO actual discovery
