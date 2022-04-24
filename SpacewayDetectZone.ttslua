@@ -18,7 +18,7 @@ params = {
   ship_range = 2
 }
 --]]
-function moveSpacewayDetectZone(params)
+function validateSpaceways(params)
   -- Move to the collided tile
   self.setPosition(params.collided_object_pos)
   -- Wait 5 frames before starting the validation process
@@ -73,6 +73,7 @@ function moveSpacewayDetectZone(params)
   end
   -- It looks funky here but trust me bro, this ends the Wait.frames function
   end, 5)
+
 end
 
 
