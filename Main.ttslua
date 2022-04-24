@@ -1,6 +1,4 @@
 -- List known object GUIDs for reference
-require("Main")
-
 scout_GUID = "fbc3fe"
 spacewayDetectZone_GUID = "dac1a7"
 targetTile_GUID = "c4467a"
