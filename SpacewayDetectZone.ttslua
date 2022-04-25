@@ -1,8 +1,6 @@
 -- INIT: Get needed GUIDS from Global
-scout_GUID = Global.getVar("scout_GUID")
-print(scout_GUID)
+
 -- INIT: Make variables for object references
-scout = getObjectFromGUID(scout_GUID)
 
 -- SETUP: init scriptwide tables & variables
 curr_HL = {}
@@ -15,7 +13,6 @@ self.setPosition(reset_pos)
 --[[
 params = {
   Vector start_pos,
-  String target_tag,
   int range
 }
 --]]
@@ -25,8 +22,9 @@ function sendPulse_HL(params)
   -- Wait 5 frames before starting the validation process
   -- NOTE that the argument for the amount of frames in under this all
   Wait.frames(function()
-  -- Flush curr_HL
+  -- Flush curr_HL and range_bounce
   curr_HL = {}
+  range_bounce = {}
   for _, foundSpaceway in ipairs(self.getObjects()) do
     -- Declare needed vars...
     local target_pos = foundSpaceway.getPosition()
@@ -65,11 +63,18 @@ function sendPulse_HL(params)
           table.insert(curr_HL, obj.hit_object)
         end
       end
+      -- DEBUG: Ready for taking ranges; Check for last item in last cast and save it
+      table.insert(range_bounce, curr_HL[#curr_HL])
     end
   end
   -- After all objects are checked, highlight every object listed
   for _, v in ipairs(curr_HL) do
     v.highlightOn("Red")
+  end
+  -- DEBUG: Then highlight the last ones, ready for bouncing
+  for _, v in ipairs(range_bounce) do
+    v.highlightOff()
+    v.highlightOn("Blue")
   end
   -- It looks funky here but trust me bro, this ends the Wait.frames function
   end, 5)
