@@ -34,6 +34,7 @@ function onCollisionEnter(info)
     }
     spacewayDetectZone.call("validateSpaceways", params)
   elseif collided == 0 then
+  
     -- If collided, but not with a void tile, skip moving the Discovery zone, and set collided to 1
     collided = 1
   end
@@ -47,3 +48,5 @@ function onPickUp()
     v.highlightOff()
   end
 end
+
+-- Testing git pull x2
