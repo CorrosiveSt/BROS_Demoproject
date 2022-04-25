@@ -1,8 +1,6 @@
 -- INIT: Get needed GUIDS from Global
-scout_GUID = Global.getVar("scout_GUID")
-print(scout_GUID)
+
 -- INIT: Make variables for object references
-scout = getObjectFromGUID(scout_GUID)
 
 -- SETUP: init scriptwide tables & variables
 curr_HL = {}
@@ -15,7 +13,6 @@ self.setPosition(reset_pos)
 --[[
 params = {
   Vector start_pos,
-  String target_tag,
   int range
 }
 --]]
@@ -71,6 +68,8 @@ function sendPulse_HL(params)
   for _, v in ipairs(curr_HL) do
     v.highlightOn("Red")
   end
+  -- DEBUG: Ready for taking ranges; Check for last item in curr_HL and change HL to Blue
+  curr_HL[#curr_HL].highlightOn("Blue")
   -- It looks funky here but trust me bro, this ends the Wait.frames function
   end, 5)
 end
