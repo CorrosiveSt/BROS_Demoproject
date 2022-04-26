@@ -1,8 +1,7 @@
 # BROS_Demoproject
 Demo files for the Tabletop simulator project: "Beyond reach of stars"
 
-Formatting help for the future:
-
+Formatting help for the future: [Github Docs - formatting syntax](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax)
 
 ### To create a branch
 1. Add the issue to the Project board, or move an existing one to "In progress" tab.
