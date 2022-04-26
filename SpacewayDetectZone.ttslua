@@ -10,6 +10,8 @@ reset_pos = {0, -10, 0}
 -- SETUP: reset position to under the table
 self.setPosition(reset_pos)
 
+
+
 -- The dropped ship calls for tile check, passing arguments in a table:
 --[[
 params = {
@@ -20,7 +22,7 @@ params = {
 function sendPulse_HL(params)
   local range = params.range
   print(range)
-  range = range - 1
+  range = range-1
   -- DEBUG:
   -- Move zone to the specified tile
   self.setPosition(params.start_pos)

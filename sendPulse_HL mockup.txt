@@ -1,0 +1,72 @@
+-- Init scriptwide tables & variables
+cast_tiles_space = {}
+cast_tiles_sw = {}
+
+
+
+--[[
+params = {
+  Vector start_pos,
+  int range
+}
+--]]
+function sendPulse_HL(params)
+  -- move to start_pos
+
+  -- Gather objects and one by one do:
+  for _, spaceway in ipairs(self.getObjects()) do
+    -- find target pos and hdg, normalize values to y
+
+    -- call compareHDG(target_pos, target_hdg)
+
+    -- use the return value to deem this node as valid
+    if compareHDG(target_pos, target_hdg) ~= nil then
+      -- call castTo(target_hdg)
+    end
+  end
+  -- Now the pulse has been done to the range of one
+
+  -- check if there's range to go
+  if range > 0 then
+    -- lessen range by 1
+
+    -- call self with the new range, on every ending void tile
+  end
+end
+
+
+
+function compareHDG(target_pos, target_hdg)
+  -- Draw a vector between self and target
+
+  -- Clamp the vector and target_hdg to increments of 60
+
+  -- compare the values
+
+  -- Return direction vector if valid, otherwise nil
+end
+
+
+
+function castTo(target_hdg)
+  -- Do a physics cast towards vec_toTarget
+
+  -- Filter results
+  for _, obj in ipairs(cast_tiles) do
+    if obj.hit_object.hasTag("range-checked") then
+      -- Skip adding
+    elseif obj.hit_object.hasTag("Space") then
+      -- Add space tile to its own table cast_tiles_space
+
+      -- Add tag to the tile called "range-checked"
+    elseif obj.hit_object.hasTag("spaceway") then
+      -- Add spaceway tile to its own table cast_tiles_sw
+    end
+  end
+end
+
+
+
+function resetTables()
+  -- Reset all tables when needed, like when ship picked up
+end
