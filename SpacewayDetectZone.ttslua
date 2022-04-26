@@ -17,6 +17,9 @@ params = {
 }
 --]]
 function sendPulse_HL(params)
+  -- Set range correctly, and get ready to call self
+  range = range - 1
+  print(range)
   -- Move zone to the specified tile
   self.setPosition(params.start_pos)
   -- Wait 5 frames before starting the validation process
@@ -71,10 +74,17 @@ function sendPulse_HL(params)
   for _, v in ipairs(curr_HL) do
     v.highlightOn("Red")
   end
+
   -- DEBUG: Then highlight the last ones, ready for bouncing
   for _, v in ipairs(range_bounce) do
     v.highlightOff()
     v.highlightOn("Blue")
+  end
+
+  -- Call self if there's still range
+  if range > 0 then
+    -- TODO: Somehow extract the right values and call self
+    sendPulse_HL()
   end
   -- It looks funky here but trust me bro, this ends the Wait.frames function
   end, 5)
