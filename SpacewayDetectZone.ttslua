@@ -4,6 +4,7 @@
 
 -- SETUP: init scriptwide tables & variables
 curr_HL = {}
+range_bounce = {}
 reset_pos = {0, -10, 0}
 
 -- SETUP: reset position to under the table
@@ -17,17 +18,15 @@ params = {
 }
 --]]
 function sendPulse_HL(params)
-  -- Set range correctly, and get ready to call self
-  range = range - 1
+  local range = params.range
   print(range)
+  range = range - 1
+  -- DEBUG:
   -- Move zone to the specified tile
   self.setPosition(params.start_pos)
   -- Wait 5 frames before starting the validation process
   -- NOTE that the argument for the amount of frames in under this all
   Wait.frames(function()
-  -- Flush curr_HL and range_bounce
-  curr_HL = {}
-  range_bounce = {}
   for _, foundSpaceway in ipairs(self.getObjects()) do
     -- Declare needed vars...
     local target_pos = foundSpaceway.getPosition()
@@ -66,7 +65,7 @@ function sendPulse_HL(params)
           table.insert(curr_HL, obj.hit_object)
         end
       end
-      -- DEBUG: Ready for taking ranges; Check for last item in last cast and save it
+      -- Check for last item in last cast and save it
       table.insert(range_bounce, curr_HL[#curr_HL])
     end
   end
@@ -75,16 +74,19 @@ function sendPulse_HL(params)
     v.highlightOn("Red")
   end
 
-  -- DEBUG: Then highlight the last ones, ready for bouncing
+  -- Extract the pos from range_bounce for calling another set of casts
+  -- table.point
+
+  -- Check if there's range, and do another pulse
+  if range > 0 then
+    for _, v in ipairs(range_bounce) do
+      sendPulse_HL(range_bounce.point, range)
+    end
+  end
+-- In the end, change void highlights to blue
   for _, v in ipairs(range_bounce) do
     v.highlightOff()
-    v.highlightOn("Blue")
-  end
-
-  -- Call self if there's still range
-  if range > 0 then
-    -- TODO: Somehow extract the right values and call self
-    sendPulse_HL()
+    v.highlightOn("Red")
   end
   -- It looks funky here but trust me bro, this ends the Wait.frames function
   end, 5)
