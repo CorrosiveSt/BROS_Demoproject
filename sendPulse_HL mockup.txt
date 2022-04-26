@@ -37,7 +37,7 @@ end
 
 
 function compareHDG(target_pos, target_hdg)
-  -- Draw a vector between self and target
+  -- Draw a vector from self to target_pos
 
   -- Clamp the vector and target_hdg to increments of 60
 

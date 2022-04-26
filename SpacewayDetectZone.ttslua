@@ -4,12 +4,12 @@
 
 -- SETUP: init scriptwide tables & variables
 curr_HL = {}
-range_bounce = {}
+cast_tiles_space = {}
+cast_tiles_sw = {}
 reset_pos = {0, -10, 0}
 
 -- SETUP: reset position to under the table
 self.setPosition(reset_pos)
-
 
 
 -- The dropped ship calls for tile check, passing arguments in a table:
@@ -20,79 +20,99 @@ params = {
 }
 --]]
 function sendPulse_HL(params)
+  -- Update range
   local range = params.range
-  print(range)
-  range = range-1
-  -- DEBUG:
-  -- Move zone to the specified tile
+  -- Move to start_pos
   self.setPosition(params.start_pos)
-  -- Wait 5 frames before starting the validation process
+
+  -- Gather objects, for each get values ready for compareHDG()
   -- NOTE that the argument for the amount of frames in under this all
   Wait.frames(function()
-  for _, foundSpaceway in ipairs(self.getObjects()) do
-    -- Declare needed vars...
-    local target_pos = foundSpaceway.getPosition()
-    local target_rot = foundSpaceway.getRotation()
-    -- Normalize y, so the cast keeps level throughout
+  for _, obj in ipairs(self.getObjects()) do
+    -- Find target pos and hdg, and normalize values to y
+    local target_pos = obj.getPosition()
+    local target_hdg = obj.getRotation()
+
     target_pos[2] = params.start_pos[2]
-    local vec_toTarget = Vector.between(params.start_pos, target_pos)
-    --extract the y rotation of both, and convert the vector angle (180 -> 360)
-    local vec_toTarget_y = vec_toTarget:heading('y')
-    if vec_toTarget_y < 0 then
-      vec_toTarget_y = vec_toTarget_y + 360
-    end
-    local target_rot_y = target_rot[2]
-    -- Now we manually clamp the rotation value to increments of 60
-    target_rot_y = math.floor(target_rot_y/60+0.5)*60
-    vec_toTarget_y = math.floor(vec_toTarget_y/60+0.5)*60
-    -- Now let's check the difference, and start a cast in the direction if valid
-    local result = math.abs(vec_toTarget_y - target_rot_y)
-    if result == 180 or result == 0 then
-      local cast_tiles = Physics.cast({
-        origin       = params.start_pos,
-        direction    = vec_toTarget,
-        type         = 2,
-        size         = {1,1,1},
-        debug        = false,
-      })
-      -- For checking till the next void tile:
-      local void_count = 0
-      -- Continue adding to curr_HL until a Void tile has been hit
-      -- NOTE: Hit twice, since the cast also counts in the collided tile
-      for _, obj in ipairs(cast_tiles) do
-        if obj.hit_object.hasTag("Space") and void_count < 2 then
-          table.insert(curr_HL, obj.hit_object)
-          void_count = void_count + 1
-        elseif obj.hit_object.hasTag("spaceway") and void_count < 2 then
-          table.insert(curr_HL, obj.hit_object)
-        end
-      end
-      -- Check for last item in last cast and save it
-      table.insert(range_bounce, curr_HL[#curr_HL])
-    end
-  end
-  -- After all objects are checked, highlight every object listed
-  for _, v in ipairs(curr_HL) do
-    v.highlightOn("Red")
-  end
+    target_hdg = target_hdg[2]
 
-  -- Extract the pos from range_bounce for calling another set of casts
-  -- table.point
-
-  -- Check if there's range, and do another pulse
-  if range > 0 then
-    for _, v in ipairs(range_bounce) do
-      sendPulse_HL(range_bounce.point, range)
+    local result = compareHDG(target_pos, target_hdg)
+    if result ~= nil then
+      castTo(result)
     end
-  end
--- In the end, change void highlights to blue
-  for _, v in ipairs(range_bounce) do
-    v.highlightOff()
-    v.highlightOn("Red")
   end
   -- It looks funky here but trust me bro, this ends the Wait.frames function
   end, 5)
+  -- Check if there's range to go
+  if range > 0 then
+    for _, tiles in ipairs(cast_tiles_space) do
+      local params = {
+        start_pos = tiles.getPosition(),
+        range = range - 1
+      }
+      sendPulse_HL(params)
+    end
+  end
+
+  -- highlight everything
+  for _, obj in ipairs(cast_tiles_space) do
+    obj.highlightOn("Blue", 5.0)
+  end
+  for _, obj in ipairs(cast_tiles_sw) do
+    obj.highlightOn("Red", 5.0)
+  end
 end
+
+
+
+function compareHDG(target_pos, target_hdg)
+  -- Draw a vector from self to target_pos
+  local vec_toTarget = Vector.between(self.getPosition(), target_pos)
+  local vec_toTarget_y = vec_toTarget:heading('y')
+  -- Clamp the vector and target_hdg to increments of 60
+  target_hdg = math.floor(target_hdg/60+0.5)*60
+  vec_toTarget_y = math.floor(vec_toTarget_y/60+0.5)*60
+  -- Compare the values
+  local result = math.abs(vec_toTarget_y - target_hdg)
+  -- Return direction vector if valid, otherwise nil
+  if result == 180 or result == 0 then
+    return vec_toTarget
+  else
+    return nil
+  end
+end
+
+
+function castTo(target_hdg)
+  -- Do a physics cast towards vec_toTarget
+  local cast_tiles = Physics.cast({
+    origin       = self.getPosition(),
+    direction    = target_hdg,
+    type         = 2,      -- Add tag to the tile called "range-checked"
+    size         = {1,1,1},
+    debug        = true,
+  })
+
+  local void_count = 0
+  for _, obj in ipairs(cast_tiles) do
+    -- Filter results
+    if void_count > 1 then
+      if obj.hit_object.hasTag("range-checked") then
+        void_count = void_count + 1
+      elseif obj.hit_object.hasTag("Space") then
+        -- Add space tile to its own table cast_tiles_space and mark as checked
+        table.insert(cast_tiles_space, obj.hit_object)
+        obj.hitObject.addTag("range-checked")
+        void_count = void_count + 1
+      elseif obj.hit_object.hasTag("spaceway") then
+        -- Add spaceway tile to its own table cast_tiles_sw
+        table.insert(cast_tiles_sw, obj.hit_object)
+      end
+    end
+  end
+end
+
+
 
 function startDiscovery()
   --TODO actual discovery
