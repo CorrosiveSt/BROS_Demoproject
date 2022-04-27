@@ -3,7 +3,6 @@
 -- INIT: Make variables for object references
 
 -- SETUP: init scriptwide tables & variables
-curr_HL = {}
 cast_tiles_space = {}
 cast_tiles_sw = {}
 reset_pos = {0, -10, 0}
@@ -11,17 +10,12 @@ reset_pos = {0, -10, 0}
 -- SETUP: reset position to under the table
 self.setPosition(reset_pos)
 
+--[[--]]--
 
--- The dropped ship calls for tile check, passing arguments in a table:
---[[
-params = {
-  Vector start_pos,
-  int range
-}
---]]
 function sendPulse_HL(params)
   -- Update range
   local range = params.range
+  print("range:" .. tostring(range))
   -- Move to start_pos
   self.setPosition(params.start_pos)
 
@@ -43,32 +37,28 @@ function sendPulse_HL(params)
   end
   -- It looks funky here but trust me bro, this ends the Wait.frames function
   end, 5)
+
   -- Check if there's range to go
   if range > 0 then
-    for _, tiles in ipairs(cast_tiles_space) do
-      local params = {
-        start_pos = tiles.getPosition(),
-        range = range - 1
-      }
-      sendPulse_HL(params)
-    end
-  end
-
-  -- highlight everything
-  for _, obj in ipairs(cast_tiles_space) do
-    obj.highlightOn("Blue", 5.0)
-  end
-  for _, obj in ipairs(cast_tiles_sw) do
-    obj.highlightOn("Red", 5.0)
+      for _, tiles in ipairs(cast_tiles_space) do
+        local new = {
+          start_pos = tiles.getPosition(),
+          range = range - 1
+        }
+        sendPulse_HL(new)
+      end
   end
 end
 
-
+--[[--]]--
 
 function compareHDG(target_pos, target_hdg)
   -- Draw a vector from self to target_pos
   local vec_toTarget = Vector.between(self.getPosition(), target_pos)
   local vec_toTarget_y = vec_toTarget:heading('y')
+  if vec_toTarget_y < 0 then
+    vec_toTarget_y = vec_toTarget_y + 180
+  end
   -- Clamp the vector and target_hdg to increments of 60
   target_hdg = math.floor(target_hdg/60+0.5)*60
   vec_toTarget_y = math.floor(vec_toTarget_y/60+0.5)*60
@@ -82,6 +72,7 @@ function compareHDG(target_pos, target_hdg)
   end
 end
 
+--[[--]]--
 
 function castTo(target_hdg)
   -- Do a physics cast towards vec_toTarget
@@ -96,14 +87,16 @@ function castTo(target_hdg)
   local void_count = 0
   for _, obj in ipairs(cast_tiles) do
     -- Filter results
-    if void_count > 1 then
+    if void_count < 2 then
       if obj.hit_object.hasTag("range-checked") then
         void_count = void_count + 1
+
       elseif obj.hit_object.hasTag("Space") then
         -- Add space tile to its own table cast_tiles_space and mark as checked
         table.insert(cast_tiles_space, obj.hit_object)
-        obj.hitObject.addTag("range-checked")
+        obj.hit_object.addTag("range-checked")
         void_count = void_count + 1
+
       elseif obj.hit_object.hasTag("spaceway") then
         -- Add spaceway tile to its own table cast_tiles_sw
         table.insert(cast_tiles_sw, obj.hit_object)
@@ -112,7 +105,15 @@ function castTo(target_hdg)
   end
 end
 
+--[[--]]--
 
+function onChat(message, player)
+  if message == "clear" then
+    cast_tiles_space = {}
+    cast_tiles_sw = {}
+    self.setPosition(reset_pos)
+  end
+end
 
 function startDiscovery()
   --TODO actual discovery

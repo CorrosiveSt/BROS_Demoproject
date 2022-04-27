@@ -38,8 +38,4 @@ end
 -- Clear collided status when picked up for resetting
 function onPickUp()
   collided = 0
-  curr_HL = spacewayDetectZone.getTable("curr_HL")
-  for _, v in ipairs(curr_HL) do
-    v.highlightOff()
-  end
 end
