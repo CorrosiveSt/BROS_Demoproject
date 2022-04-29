@@ -10,14 +10,12 @@ reset_pos = {0, -10, 0}
 -- SETUP: reset position to under the table
 self.setPosition(reset_pos)
 
---[[--]]--
+--[[- - - - - - - - - -]]--
 
 function sendPulse_HL(params)
-  -- Update range
-  local range = params.range
-  print("range:" .. tostring(range))
   -- Move to start_pos
   self.setPosition(params.start_pos)
+  range = params.range
 
   -- Gather objects, for each get values ready for compareHDG()
   -- NOTE that the argument for the amount of frames in under this all
@@ -30,27 +28,29 @@ function sendPulse_HL(params)
     target_pos[2] = params.start_pos[2]
     target_hdg = target_hdg[2]
 
-    local result = compareHDG(target_pos, target_hdg)
-    if result ~= nil then
-      castTo(result)
+    local angle = compareHDG(target_pos, target_hdg)
+    if angle ~= nil then
+      castTo(angle)
     end
   end
   -- It looks funky here but trust me bro, this ends the Wait.frames function
   end, 5)
 
-  -- Check if there's range to go
-  if range > 0 then
-      for _, tiles in ipairs(cast_tiles_space) do
-        local new = {
-          start_pos = tiles.getPosition(),
-          range = range - 1
-        }
-        sendPulse_HL(new)
-      end
+  for _,v in ipairs(cast_tiles_space) do
+    v.addTag("range-checked")
   end
+
+  range = range - 1
 end
 
---[[--]]--
+--[[- - - - - - - - - -]]--
+
+function newPulse(params)
+  print("Countdown started!")
+  Wait.frames(function() sendPulse_HL(params) end, 10)
+end
+
+--[[- - - - - - - - - -]]--
 
 function compareHDG(target_pos, target_hdg)
   -- Draw a vector from self to target_pos
@@ -72,50 +72,64 @@ function compareHDG(target_pos, target_hdg)
   end
 end
 
---[[--]]--
+--[[- - - - - - - - - -]]--
 
 function castTo(target_hdg)
   -- Do a physics cast towards vec_toTarget
   local cast_tiles = Physics.cast({
     origin       = self.getPosition(),
     direction    = target_hdg,
-    type         = 2,      -- Add tag to the tile called "range-checked"
+    type         = 2,
     size         = {1,1,1},
     debug        = true,
   })
 
   local void_count = 0
+  -- Filter results
   for _, obj in ipairs(cast_tiles) do
-    -- Filter results
     if void_count < 2 then
       if obj.hit_object.hasTag("range-checked") then
+        -- Skip adding again, but mark as already checked to void_count
         void_count = void_count + 1
 
       elseif obj.hit_object.hasTag("Space") then
         -- Add space tile to its own table cast_tiles_space and mark as checked
         table.insert(cast_tiles_space, obj.hit_object)
-        obj.hit_object.addTag("range-checked")
         void_count = void_count + 1
+        obj.hit_object.highlightOn("Blue")
+        params = {
+          start_pos = obj.hit_object.getPosition(),
+          range = range
+        }
+        sendPulse_HL(params)
 
       elseif obj.hit_object.hasTag("spaceway") then
         -- Add spaceway tile to its own table cast_tiles_sw
         table.insert(cast_tiles_sw, obj.hit_object)
+        obj.hit_object.highlightOn("Red")
       end
     end
   end
 end
 
---[[--]]--
-
-function onChat(message, player)
-  if message == "clear" then
-    cast_tiles_space = {}
-    cast_tiles_sw = {}
-    self.setPosition(reset_pos)
-  end
-end
+--[[- - - - - - - - - -]]--
 
 function startDiscovery()
   --TODO actual discovery
   print("Started discovery!")
+end
+
+--[[- - - - - - - - - -]]--
+
+function resetValues()
+  for _,v in ipairs(cast_tiles_space) do
+    v.removeTag("range-checked")
+    v.highlightOff()
+  end
+  for _,v in ipairs(cast_tiles_sw) do
+    v.highlightOff()
+  end
+  cast_tiles_sw = {}
+  cast_tiles_space = {}
+  self.setPosition(reset_pos)
 end
