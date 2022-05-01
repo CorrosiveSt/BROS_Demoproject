@@ -24,8 +24,9 @@ function onCollisionEnter(info)
   if info.collision_object.getName() == "Void" and collided == 0 then
     collided = 1
     -- Call the move of spacewayDetectZone, and send the position as an argument
+    local start_pos = info.collision_object.getPosition()
     params = {
-      start_pos = info.collision_object.getPosition(),
+      start_pos = {start_pos},
       range = 2
     }
     spacewayDetectZone.call("sendPulse_HL", params)
@@ -38,5 +39,5 @@ end
 -- Clear collided status when picked up for resetting
 function onPickUp()
   collided = 0
-  spacewayDetectZone.call("resetValues")
+  -- spacewayDetectZone.call("resetValues")
 end

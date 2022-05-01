@@ -1,135 +1,97 @@
--- INIT: Get needed GUIDS from Global
+tile_master_table = {
+  sw = {},
+  space = {}
+}
 
--- INIT: Make variables for object references
+-- args[.start_pos, .range]
+function sendPulse_HL(args) -- Returns tile_master_table to ship
+  for _,v in ipairs(args.start_pos) do
+    pulse(v)
+  end
+  remDuplicates(tile_master_table.sw)
+  remDuplicates(tile_master_table.space)
+  return tile_master_table
+end
 
--- SETUP: init scriptwide tables & variables
-cast_tiles_space = {}
-cast_tiles_sw = {}
-reset_pos = {0, -10, 0}
+--[[ -- ]]--
 
--- SETUP: reset position to under the table
-self.setPosition(reset_pos)
+function pulse(start_pos)
+  self.setPosition(start_pos)
+  local toPulseHDG = {}
 
---[[- - - - - - - - - -]]--
-
-function sendPulse_HL(params)
-  -- Move to start_pos
-  self.setPosition(params.start_pos)
-  range = params.range
-
-  -- Gather objects, for each get values ready for compareHDG()
-  -- NOTE that the argument for the amount of frames in under this all
-  Wait.frames(function()
-  for _, obj in ipairs(self.getObjects()) do
-    -- Find target pos and hdg, and normalize values to y
-    local target_pos = obj.getPosition()
-    local target_hdg = obj.getRotation()
-
-    target_pos[2] = params.start_pos[2]
-    target_hdg = target_hdg[2]
-
-    local angle = compareHDG(target_pos, target_hdg)
-    if angle ~= nil then
-      castTo(angle)
+  for _,found_sw in ipairs(self.getObjects()) do
+    local angleToSw = validateSw(found_sw)
+    if angleToSw ~= nil then
+      local found_sw_table = {
+        obj = found_sw,
+        hdg = {angleToSw}
+      }
+      table.insert(toPulseSw, found_sw_table)
     end
   end
-  -- It looks funky here but trust me bro, this ends the Wait.frames function
-  end, 5)
 
-  for _,v in ipairs(cast_tiles_space) do
-    v.addTag("range-checked")
-  end
+  for _,angle in ipairs(found_sw_table) do
+    local target_pos = found_sw_table.obj.getPosition()
+    local self_pos = self.getPosition()
+    target_pos[2] = self_pos[2]
 
-  range = range - 1
-end
+    local pulse = Physics.cast({
+      origin       = found_sw_table.obj.getPosition(),
+      direction    = Vector.between(self.getPosition(), found_sw_table.obj.getPosition()),
+      type         = 2,
+      size         = {1,1,1},
+      debug        = true,
+    })
 
---[[- - - - - - - - - -]]--
+    for _,s_cast in ipairs(pulse) do
+      if s_cast.hit_object.hasTag("cast-checked") then
+        log("pulse: already hit space hit again!")
 
-function newPulse(params)
-  print("Countdown started!")
-  Wait.frames(function() sendPulse_HL(params) end, 10)
-end
+      elseif s_cast.hit_object.hasTag("Space") then
+        table.insert(tile_master_table.space, s_cast.hit_object)
+        s_cast.hit_object.addTag("cast_checked")
 
---[[- - - - - - - - - -]]--
+      elseif s_cast.hit_object.hasTag("spaceway") then
+        table.insert(tile_master_table.sw, s_cast.hit_object)
 
-function compareHDG(target_pos, target_hdg)
-  -- Draw a vector from self to target_pos
-  local vec_toTarget = Vector.between(self.getPosition(), target_pos)
-  local vec_toTarget_y = vec_toTarget:heading('y')
-  if vec_toTarget_y < 0 then
-    vec_toTarget_y = vec_toTarget_y + 180
-  end
-  -- Clamp the vector and target_hdg to increments of 60
-  target_hdg = math.floor(target_hdg/60+0.5)*60
-  vec_toTarget_y = math.floor(vec_toTarget_y/60+0.5)*60
-  -- Compare the values
-  local result = math.abs(vec_toTarget_y - target_hdg)
-  -- Return direction vector if valid, otherwise nil
-  if result == 180 or result == 0 then
-    return vec_toTarget
-  else
-    return nil
-  end
-end
-
---[[- - - - - - - - - -]]--
-
-function castTo(target_hdg)
-  -- Do a physics cast towards vec_toTarget
-  local cast_tiles = Physics.cast({
-    origin       = self.getPosition(),
-    direction    = target_hdg,
-    type         = 2,
-    size         = {1,1,1},
-    debug        = true,
-  })
-
-  local void_count = 0
-  -- Filter results
-  for _, obj in ipairs(cast_tiles) do
-    if void_count < 2 then
-      if obj.hit_object.hasTag("range-checked") then
-        -- Skip adding again, but mark as already checked to void_count
-        void_count = void_count + 1
-
-      elseif obj.hit_object.hasTag("Space") then
-        -- Add space tile to its own table cast_tiles_space and mark as checked
-        table.insert(cast_tiles_space, obj.hit_object)
-        void_count = void_count + 1
-        obj.hit_object.highlightOn("Blue")
-        params = {
-          start_pos = obj.hit_object.getPosition(),
-          range = range
-        }
-        sendPulse_HL(params)
-
-      elseif obj.hit_object.hasTag("spaceway") then
-        -- Add spaceway tile to its own table cast_tiles_sw
-        table.insert(cast_tiles_sw, obj.hit_object)
-        obj.hit_object.highlightOn("Red")
+      else
+        log("pulse: wrong type of tile! No tags?")
+        s_cast.hit_object.highlightOn("Red", 5)
       end
     end
   end
 end
 
---[[- - - - - - - - - -]]--
+--[[ -- ]]--
 
-function startDiscovery()
-  --TODO actual discovery
-  print("Started discovery!")
+function validateSw(found_sw) -- Returns an angle if valid, nil if invalid
+  local hdg_to_target = Vector.between(self.getPosition(), found_sw.getPosition():heading('y'))
+  if hdg_to_target < 0 then
+    hdg_to_target = hdg_to_target + 180
+  end
+  local target_hdg = found_sw.getRotation().y
+
+  hdg_to_target = clampTo60(hdg_to_target)
+  target_hdg = clampTo60(target_hdg)
+
+  local sum = hdg_to_target - target_hdg
+
+  if sum == 180 or sum == -180 then
+    return hdg_to_target
+  else
+    log("validateSw: " .. hdg_to_target .. " was not valid!")
+    return nil
+  end
 end
 
---[[- - - - - - - - - -]]--
+--[[ -- ]]--
 
-function resetValues()
-  for _,v in ipairs(cast_tiles_space) do
-    v.removeTag("range-checked")
-    v.highlightOff()
+function clampTo60(angle)
+  local res = math.floor(angle/60+0.5)*60
+  if res == 360 then
+    res = 0
   end
-  for _,v in ipairs(cast_tiles_sw) do
-    v.highlightOff()
-  end
-  cast_tiles_sw = {}
-  cast_tiles_space = {}
-  self.setPosition(reset_pos)
+  return res -- Returns value closest to increments of 60
 end
+
+--[[ -- ]]--
