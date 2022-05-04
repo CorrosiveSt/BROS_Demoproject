@@ -5,43 +5,36 @@ tile_master_table = {
 
 -- args[.start_pos, .range]
 function sendPulse_HL(args) -- Returns tile_master_table to ship
-  for _,v in ipairs(args.start_pos) do
-    pulse(v)
-  end
-  remDuplicates(tile_master_table.sw)
-  remDuplicates(tile_master_table.space)
-  return tile_master_table
+  pulse(args.start_pos)
 end
 
 --[[ -- ]]--
 
 function pulse(start_pos)
+  pulse("Starting a pulse at " .. tostring(start_pos))
   self.setPosition(start_pos)
-  local toPulseHDG = {}
+  local found_sw_table = {}
 
   for _,found_sw in ipairs(self.getObjects()) do
-    local angleToSw = validateSw(found_sw)
-    if angleToSw ~= nil then
-      local found_sw_table = {
-        obj = found_sw,
-        hdg = {angleToSw}
-      }
-      table.insert(toPulseSw, found_sw_table)
+    if validateSw(found_sw) ~= nil then
+      table.insert(found_sw_table, found_sw)
     end
   end
 
-  for _,angle in ipairs(found_sw_table) do
-    local target_pos = found_sw_table.obj.getPosition()
+  for _,curr_sw in ipairs(found_sw_table) do
+    local target_pos = curr_sw.getPosition()
     local self_pos = self.getPosition()
     target_pos[2] = self_pos[2]
 
     local pulse = Physics.cast({
-      origin       = found_sw_table.obj.getPosition(),
-      direction    = Vector.between(self.getPosition(), found_sw_table.obj.getPosition()),
+      origin       = curr_sw.getPosition(),
+      direction    = Vector.between(self.getPosition(), curr_sw.getPosition()),
       type         = 2,
       size         = {1,1,1},
       debug        = true,
     })
+
+    print("Cast done!")
 
     for _,s_cast in ipairs(pulse) do
       if s_cast.hit_object.hasTag("cast-checked") then
@@ -66,6 +59,7 @@ end
 
 function validateSw(found_sw) -- Returns an angle if valid, nil if invalid
   local hdg_to_target = Vector.between(self.getPosition(), found_sw.getPosition():heading('y'))
+  print(tostring(hdg_to_target))
   if hdg_to_target < 0 then
     hdg_to_target = hdg_to_target + 180
   end
@@ -95,3 +89,14 @@ function clampTo60(angle)
 end
 
 --[[ -- ]]--
+
+function remDuplicates(toSort_table)
+  local hash = {}
+  local res = {}
+  for _,v in ipairs(toSort_table) do
+    if (not hash[v]) then
+      res[#res+1] = v -- you could print here instead of saving to result table if you wanted
+      hash[v] = true
+    end
+  end
+end
