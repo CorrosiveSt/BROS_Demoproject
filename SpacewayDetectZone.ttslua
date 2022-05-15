@@ -11,58 +11,42 @@ end
 --[[ -- ]]--
 
 function pulse(start_pos)
-  pulse("Starting a pulse at " .. tostring(start_pos))
+
+  tile_master_table = {
+    sw = {},
+    space = {}
+  }
+  local sw_to_cast = {}
+
   self.setPosition(start_pos)
-  local found_sw_table = {}
 
-  for _,found_sw in ipairs(self.getObjects()) do
-    if validateSw(found_sw) ~= nil then
-      table.insert(found_sw_table, found_sw)
-    end
-  end
-
-  for _,curr_sw in ipairs(found_sw_table) do
-    local target_pos = curr_sw.getPosition()
-    local self_pos = self.getPosition()
-    target_pos[2] = self_pos[2]
-
-    local pulse = Physics.cast({
-      origin       = curr_sw.getPosition(),
-      direction    = Vector.between(self.getPosition(), curr_sw.getPosition()),
-      type         = 2,
-      size         = {1,1,1},
-      debug        = true,
-    })
-
-    print("Cast done!")
-
-    for _,s_cast in ipairs(pulse) do
-      if s_cast.hit_object.hasTag("cast-checked") then
-        log("pulse: already hit space hit again!")
-
-      elseif s_cast.hit_object.hasTag("Space") then
-        table.insert(tile_master_table.space, s_cast.hit_object)
-        s_cast.hit_object.addTag("cast_checked")
-
-      elseif s_cast.hit_object.hasTag("spaceway") then
-        table.insert(tile_master_table.sw, s_cast.hit_object)
-
-      else
-        log("pulse: wrong type of tile! No tags?")
-        s_cast.hit_object.highlightOn("Red", 5)
+  Wait.frames(function()
+    for _,found_sw in ipairs(self.getObjects()) do
+      if validateSw(found_sw) ~= nil then
+        table.insert(sw_to_cast, found_sw)
       end
+
     end
-  end
+
+    for _,curr_sw in ipairs(sw_to_cast) do
+      local target_pos = curr_sw.getPosition()
+      local self_pos = self.getPosition()
+      target_pos[2] = self_pos[2]
+      castTo(self_pos, target_pos)
+    end
+  end , 5)
+  Wait.frames(function() highlightMasterTable("Red") end, 20)
 end
 
 --[[ -- ]]--
 
-function validateSw(found_sw) -- Returns an angle if valid, nil if invalid
-  local hdg_to_target = Vector.between(self.getPosition(), found_sw.getPosition():heading('y'))
-  print(tostring(hdg_to_target))
+function validateSw(found_sw) -- Returns an angle if valid, "invalid" if invalid
+
+  local hdg_to_target = Vector.between(self.getPosition(), found_sw.getPosition()):heading('y')
   if hdg_to_target < 0 then
-    hdg_to_target = hdg_to_target + 180
+    hdg_to_target = hdg_to_target + 360
   end
+
   local target_hdg = found_sw.getRotation().y
 
   hdg_to_target = clampTo60(hdg_to_target)
@@ -70,10 +54,9 @@ function validateSw(found_sw) -- Returns an angle if valid, nil if invalid
 
   local sum = hdg_to_target - target_hdg
 
-  if sum == 180 or sum == -180 then
+  if sum == 180 or sum == -180 or sum == 0 then
     return hdg_to_target
   else
-    log("validateSw: " .. hdg_to_target .. " was not valid!")
     return nil
   end
 end
@@ -90,13 +73,51 @@ end
 
 --[[ -- ]]--
 
-function remDuplicates(toSort_table)
-  local hash = {}
-  local res = {}
-  for _,v in ipairs(toSort_table) do
-    if (not hash[v]) then
-      res[#res+1] = v -- you could print here instead of saving to result table if you wanted
-      hash[v] = true
+function castTo(sel_pos, tar_pos)
+  local ballcast = Physics.cast({
+    origin       = sel_pos,
+    direction    = Vector.between(sel_pos, tar_pos),
+    type         = 2,
+    size         = {1,1,1},
+    debug        = true,
+  })
+  local spacehit = 0
+  for _,item in ipairs(ballcast) do
+
+    if item.hit_object.hasTag("Space") and spacehit < 2 then
+      table.insert(tile_master_table.space, item.hit_object)
+      spacehit = spacehit + 1
+
+    elseif item.hit_object.hasTag("spaceway") and spacehit < 2 then
+      table.insert(tile_master_table.sw, item.hit_object)
     end
+  end
+end
+
+function highlightMasterTable(hl_color)
+  for _,v1 in ipairs(tile_master_table.space) do
+    v1.highlightOn(hl_color)
+  end
+  for _,v2 in ipairs(tile_master_table.sw) do
+    v2.highlightOn(hl_color)
+  end
+end
+
+function listMasterTable()
+  for i, v in ipairs(tile_master_table.space) do
+    print("Space tile " .. i .. ": " .. tostring(i))
+  end
+  for i, v in ipairs(tile_master_table.sw) do
+    print("Spaceway tile " .. i .. ": " .. tostring(i))
+  end
+end
+
+--[[ -- ]]--
+
+function onChat(message, player)
+  if message == "pulse" then
+    pulse(Player["White"].getHoverObject().getPosition())
+  elseif message == "list" then
+    listMasterTable()
   end
 end
