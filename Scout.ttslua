@@ -17,15 +17,16 @@ function onDrop(player_color)
       params = {
         start_pos = obj.hit_object.getPosition(),
         range = 2,
-        color = player_color
+        player_color = player_color
       }
       spacewayDetectZone.call("sendPulse_HL", params)
     end
   end
 end
 
--- Clear collided status when picked up for resetting
+-- Clear collided status and call clear function of spacewayDetectZone
 function onPickUp()
   collided = 0
-  -- spacewayDetectZone.call("resetValues")
+  local color = "off"
+  spacewayDetectZone.call("highlightMasterTable", color)
 end

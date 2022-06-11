@@ -1,21 +1,31 @@
 tile_master_table = {
   sw = {},
-  space = {}
+  space = {},
+  to_pulse = {}
 }
 
 -- args[.start_pos, .range]
 function sendPulse_HL(args) -- Returns tile_master_table to ship
+  local rang = args.range
   pulse(args.start_pos)
+  while rang > 0 do
+    Wait.frames(function()-
+    -- Catch new values to pulse to, and reset the original table
+    local to_pulse_buffer = tile_master_table.to_pulse
+    tile_master_table.to_pulse = {}
+    rang = rang - 1
+    for _,v in ipairs(to_pulse_buffer) do
+      pulse(v.getPosition())
+      print("to_pulse_buffer called")
+    end
+    end, 10)
+  end
+  highlightMasterTable(args.player_color)
 end
 
 --[[ -- ]]--
 
 function pulse(start_pos)
-
-  tile_master_table = {
-    sw = {},
-    space = {}
-  }
   local sw_to_cast = {}
 
   self.setPosition(start_pos)
@@ -35,7 +45,6 @@ function pulse(start_pos)
       castTo(self_pos, target_pos)
     end
   end , 5)
-  Wait.frames(function() highlightMasterTable("Red") end, 20)
 end
 
 --[[ -- ]]--
@@ -83,10 +92,14 @@ function castTo(sel_pos, tar_pos)
   })
   local spacehit = 0
   for _,item in ipairs(ballcast) do
-
-    if item.hit_object.hasTag("Space") and spacehit < 2 then
-      table.insert(tile_master_table.space, item.hit_object)
+    if item.hit_object.hasTag("range-checked") and spacehit < 2 then
       spacehit = spacehit + 1
+
+    elseif item.hit_object.hasTag("Space") and spacehit < 2 then
+      table.insert(tile_master_table.space, item.hit_object)
+      table.insert(tile_master_table.to_pulse, item.hit_object)
+      spacehit = spacehit + 1
+      item.hit_object.addTag("range-checked")
 
     elseif item.hit_object.hasTag("spaceway") and spacehit < 2 then
       table.insert(tile_master_table.sw, item.hit_object)
@@ -94,30 +107,30 @@ function castTo(sel_pos, tar_pos)
   end
 end
 
-function highlightMasterTable(hl_color)
-  for _,v1 in ipairs(tile_master_table.space) do
-    v1.highlightOn(hl_color)
-  end
-  for _,v2 in ipairs(tile_master_table.sw) do
-    v2.highlightOn(hl_color)
-  end
-end
+--[[ -- ]]--
 
-function listMasterTable()
-  for i, v in ipairs(tile_master_table.space) do
-    print("Space tile " .. i .. ": " .. tostring(i))
-  end
-  for i, v in ipairs(tile_master_table.sw) do
-    print("Spaceway tile " .. i .. ": " .. tostring(i))
+function highlightMasterTable(hl_color)
+  if hl_color == "off" then
+    for _,v1 in ipairs(tile_master_table.space) do
+      v1.highlightOff()
+      v1.removeTag("range-checked")
+    end
+    for _,v2 in ipairs(tile_master_table.sw) do
+      v2.highlightOff()
+    end
+    tile_master_table = {
+      sw = {},
+      space = {},
+      to_pulse = {}
+    }
+  else
+    for _,v1 in ipairs(tile_master_table.space) do
+      v1.highlightOn(hl_color)
+    end
+    for _,v2 in ipairs(tile_master_table.sw) do
+      v2.highlightOn(hl_color)
+    end
   end
 end
 
 --[[ -- ]]--
-
-function onChat(message, player)
-  if message == "pulse" then
-    pulse(Player["White"].getHoverObject().getPosition())
-  elseif message == "list" then
-    listMasterTable()
-  end
-end
