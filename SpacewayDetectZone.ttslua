@@ -9,14 +9,13 @@ function sendPulse_HL(args) -- Returns tile_master_table to ship
   local rang = args.range
   pulse(args.start_pos)
   while rang > 0 do
-    Wait.frames(function()-
+    Wait.frames(function()
     -- Catch new values to pulse to, and reset the original table
     local to_pulse_buffer = tile_master_table.to_pulse
     tile_master_table.to_pulse = {}
     rang = rang - 1
     for _,v in ipairs(to_pulse_buffer) do
-      pulse(v.getPosition())
-      print("to_pulse_buffer called")
+      pulse(v.getPosition()) 
     end
     end, 10)
   end
@@ -132,5 +131,4 @@ function highlightMasterTable(hl_color)
     end
   end
 end
-
 --[[ -- ]]--
