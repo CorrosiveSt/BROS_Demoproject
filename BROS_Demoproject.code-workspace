@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"name": "Tabletop Simulator Lua",
+			"path": "../../../../tmp/TabletopSimulator/Tabletop Simulator Lua"
+		}
+	],
+	"settings": {}
+}
