@@ -4,33 +4,38 @@ tile_master_table = {
   to_pulse = {}
 }
 
+tile_buffer_table = {}
+
+--[[ Process - 
+1. Receive table of positions
+2. Do a pulse for each one
+3. Add new locations to master- and pulsetable
+4. Copy new locations to a buffer, and restart the process with new table until range is depleted
+--]]
+
 -- args[.start_pos, .range, .player_color]
-function sendPulse_HL(args) -- Returns tile_master_table to ship
+function sendPulse_HL(args) -- Handle range and coroutines
   local rang = args.range
-  pulse(args.start_pos)
-  while rang > 0 do
-    Wait.frames(function()
-    -- Catch new values to pulse to, and reset the original table
-    local to_pulse_buffer = tile_master_table.to_pulse
+  pulse(args.start_pos) -- Initial pulse
+  while rang > 0 do -- Reset buffer table and
+    to_pulse_buffer = tile_master_table.to_pulse
     tile_master_table.to_pulse = {}
     rang = rang - 1
-    for _,v in ipairs(to_pulse_buffer) do
-      pulse(v.getPosition()) 
-    end
-    end, 10)
+    startLuaCoroutine(self, "coRangePulse")
   end
-  --]]
   Wait.frames(function() highlightMasterTable(args.player_color) end, 5)
 end
 
 --[[ -- ]]--
 
-function coRangePulse() -- Coroutine to space out the individual pulses
-  log("Pulse coroutine started!")
-  local pause = 0
-  while pause < 250 do
-    pause = pause + 1
-    coroutine.yield(0)
+function coRangePulse() -- Space out individual pulses to save performance
+  for i,v in ipairs(tile_buffer_table) do -- Iterate through the generated pulses
+    local pause = 0
+    while pause < 50 do 
+      pause = pause + 1
+      coroutine.yield(0)
+    end
+    pulse(i) 
   end
 
   return 1
@@ -38,7 +43,7 @@ end
 
 --[[ -- ]]--
 
-function pulse(start_pos)
+function pulse(start_pos) -- Send out casts towards validated tiles
   local sw_to_cast = {}
 
   self.setPosition(start_pos)
@@ -85,7 +90,7 @@ end
 
 --[[ -- ]]--
 
-function clampTo60(angle)
+function clampTo60(angle) -- Return arbitrary angles as rounded 60° increments
   local res = math.floor(angle/60+0.5)*60
   if res == 360 then
     res = 0
@@ -95,7 +100,7 @@ end
 
 --[[ -- ]]--
 
-function castTo(sel_pos, tar_pos)
+function castTo(sel_pos, tar_pos) -- Basic cast, handle tile_master_table
   local ballcast = Physics.cast({
     origin       = sel_pos,
     direction    = Vector.between(sel_pos, tar_pos),
@@ -122,7 +127,7 @@ end
 
 --[[ -- ]]--
 
-function highlightMasterTable(hl_color)
+function highlightMasterTable(hl_color) -- Highlight on/off, takes a color argument
   if hl_color == "off" then
     for _,v1 in ipairs(tile_master_table.space) do
       v1.highlightOff()
