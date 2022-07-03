@@ -4,7 +4,7 @@ tile_master_table = {
   to_pulse = {}
 }
 
--- args[.start_pos, .range]
+-- args[.start_pos, .range, .player_color]
 function sendPulse_HL(args) -- Returns tile_master_table to ship
   local rang = args.range
   pulse(args.start_pos)
@@ -19,7 +19,21 @@ function sendPulse_HL(args) -- Returns tile_master_table to ship
     end
     end, 10)
   end
-  highlightMasterTable(args.player_color)
+  --]]
+  Wait.frames(function() highlightMasterTable(args.player_color) end, 5)
+end
+
+--[[ -- ]]--
+
+function coRangePulse() -- Coroutine to space out the individual pulses
+  log("Pulse coroutine started!")
+  local pause = 0
+  while pause < 250 do
+    pause = pause + 1
+    coroutine.yield(0)
+  end
+
+  return 1
 end
 
 --[[ -- ]]--
@@ -131,4 +145,5 @@ function highlightMasterTable(hl_color)
     end
   end
 end
+
 --[[ -- ]]--
