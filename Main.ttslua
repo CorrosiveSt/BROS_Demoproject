@@ -3,11 +3,3 @@ scout_GUID = "fbc3fe"
 spacewayDetectZone_GUID = "dac1a7"
 targetTile_GUID = "c4467a"
 castTile_GUID = "e231be"
-
-function onLoad(save_state)
-  print("Main locked and loaded")
-end
-
-function testCommit()
-  print("Get fuckin gitted lmao")
-end

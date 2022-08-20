@@ -3,46 +3,30 @@ spacewayDetectZone_GUID = Global.getVar("spacewayDetectZone_GUID")
 -- Make variables for object references
 spacewayDetectZone = getObjectFromGUID(spacewayDetectZone_GUID)
 
--- SETUP: collided value to 0 to reduce unwanted double signals
-collided = 0
--- SETUP: create buttons
-self.createButton({
-  click_function = "startDiscovery",
-  function_owner = spacewayDetectZone,
-  label          = "O",
-  position       = {0,0.1,0.4},
-  rotation       = {0,0,0},
-  width          = 100,
-  height         = 100,
-  font_size      = 50,
-  tooltip        = "Press if sussy",
-})
 
--- When colliding, check if the item has the name "Void"
-function onCollisionEnter(info)
-  -- Check if the name matches and it hasn't sent a collider event already
-  if info.collision_object.getName() == "Void" and collided == 0 then
-    collided = 1
-    -- Call the move of spacewayDetectZone, and send the position as an argument
-    params = {
-      start_pos = info.collision_object.getPosition(),
-      range = 2
-    }
-    spacewayDetectZone.call("sendPulse_HL", params)
-  elseif collided == 0 then
-
-    -- If collided, but not with a void tile, skip moving the Discovery zone, and set collided to 1
-    collided = 1
+function onDrop(player_color)
+  obj_under = Physics.cast({
+    origin       = self.getPosition(),
+    direction    = {0,-1,0},
+    type         = 1,
+    debug        = false,
+  }) -- returns {{Vector point, Vector normal, float distance, Object hit_object}, ...}
+  for _,obj in ipairs(obj_under) do
+    if obj.hit_object.hasTag("Space") then
+      obj.hit_object.highlightOn(player_color)
+      params = {
+        start_pos = obj.hit_object.getPosition(),
+        range = 2,
+        player_color = player_color
+      }
+      spacewayDetectZone.call("sendPulse_HL", params)
+    end
   end
 end
 
--- Clear collided status when picked up for resetting
+-- Clear collided status and call clear function of spacewayDetectZone
 function onPickUp()
   collided = 0
-  curr_HL = spacewayDetectZone.getTable("curr_HL")
-  for _, v in ipairs(curr_HL) do
-    v.highlightOff()
-  end
+  local color = "off"
+  spacewayDetectZone.call("highlightMasterTable", color)
 end
-
--- Testing git pull x2

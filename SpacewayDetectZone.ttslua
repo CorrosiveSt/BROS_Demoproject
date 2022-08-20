@@ -1,86 +1,154 @@
--- INIT: Get needed GUIDS from Global
-
--- INIT: Make variables for object references
-
--- SETUP: init scriptwide tables & variables
-curr_HL = {}
-reset_pos = {0, -10, 0}
-
--- SETUP: reset position to under the table
-self.setPosition(reset_pos)
-
--- The dropped ship calls for tile check, passing arguments in a table:
---[[
-params = {
-  Vector start_pos,
-  int range
+tile_master_table = {
+  sw = {},
+  space = {},
+  to_pulse = {}
 }
+
+tile_buffer_table = {}
+
+--[[ Process - 
+1. Receive table of positions
+2. Do a pulse for each one
+3. Add new locations to master- and pulsetable
+4. Copy new locations to a buffer, and restart the process with new table until range is depleted
 --]]
-function sendPulse_HL(params)
-  -- Move zone to the specified tile
-  self.setPosition(params.start_pos)
-  -- Wait 5 frames before starting the validation process
-  -- NOTE that the argument for the amount of frames in under this all
-  Wait.frames(function()
-  -- Flush curr_HL and range_bounce
-  curr_HL = {}
-  range_bounce = {}
-  for _, foundSpaceway in ipairs(self.getObjects()) do
-    -- Declare needed vars...
-    local target_pos = foundSpaceway.getPosition()
-    local target_rot = foundSpaceway.getRotation()
-    -- Normalize y, so the cast keeps level throughout
-    target_pos[2] = params.start_pos[2]
-    local vec_toTarget = Vector.between(params.start_pos, target_pos)
-    --extract the y rotation of both, and convert the vector angle (180 -> 360)
-    local vec_toTarget_y = vec_toTarget:heading('y')
-    if vec_toTarget_y < 0 then
-      vec_toTarget_y = vec_toTarget_y + 360
-    end
-    local target_rot_y = target_rot[2]
-    -- Now we manually clamp the rotation value to increments of 60
-    target_rot_y = math.floor(target_rot_y/60+0.5)*60
-    vec_toTarget_y = math.floor(vec_toTarget_y/60+0.5)*60
-    -- Now let's check the difference, and start a cast in the direction if valid
-    local result = math.abs(vec_toTarget_y - target_rot_y)
-    if result == 180 or result == 0 then
-      local cast_tiles = Physics.cast({
-        origin       = params.start_pos,
-        direction    = vec_toTarget,
-        type         = 2,
-        size         = {1,1,1},
-        debug        = false,
-      })
-      -- For checking till the next void tile:
-      local void_count = 0
-      -- Continue adding to curr_HL until a Void tile has been hit
-      -- NOTE: Hit twice, since the cast also counts in the collided tile
-      for _, obj in ipairs(cast_tiles) do
-        if obj.hit_object.hasTag("Space") and void_count < 2 then
-          table.insert(curr_HL, obj.hit_object)
-          void_count = void_count + 1
-        elseif obj.hit_object.hasTag("spaceway") and void_count < 2 then
-          table.insert(curr_HL, obj.hit_object)
-        end
-      end
-      -- DEBUG: Ready for taking ranges; Check for last item in last cast and save it
-      table.insert(range_bounce, curr_HL[#curr_HL])
-    end
+
+-- args[.start_pos, .range, .player_color]
+function sendPulse_HL(args) -- Handle range and coroutines
+  local rang = args.range
+  pulse(args.start_pos) -- Initial pulse
+  while rang > 0 do -- Reset buffer table and
+    to_pulse_buffer = tile_master_table.to_pulse
+    tile_master_table.to_pulse = {}
+    rang = rang - 1
+    startLuaCoroutine(self, "coRangePulse")
   end
-  -- After all objects are checked, highlight every object listed
-  for _, v in ipairs(curr_HL) do
-    v.highlightOn("Red")
-  end
-  -- DEBUG: Then highlight the last ones, ready for bouncing
-  for _, v in ipairs(range_bounce) do
-    v.highlightOff()
-    v.highlightOn("Blue")
-  end
-  -- It looks funky here but trust me bro, this ends the Wait.frames function
-  end, 5)
+  Wait.frames(function() highlightMasterTable(args.player_color) end, 5)
 end
 
-function startDiscovery()
-  --TODO actual discovery
-  print("Started discovery!")
+--[[ -- ]]--
+
+function coRangePulse() -- Space out individual pulses to save performance
+  for i,v in ipairs(tile_buffer_table) do -- Iterate through the generated pulses
+    local pause = 0
+    while pause < 50 do 
+      pause = pause + 1
+      coroutine.yield(0)
+    end
+    pulse(i) 
+  end
+
+  return 1
 end
+
+--[[ -- ]]--
+
+function pulse(start_pos) -- Send out casts towards validated tiles
+  local sw_to_cast = {}
+
+  self.setPosition(start_pos)
+
+  Wait.frames(function()
+    for _,found_sw in ipairs(self.getObjects()) do
+      if validateSw(found_sw) ~= nil then
+        table.insert(sw_to_cast, found_sw)
+      end
+
+    end
+
+    for _,curr_sw in ipairs(sw_to_cast) do
+      local target_pos = curr_sw.getPosition()
+      local self_pos = self.getPosition()
+      target_pos[2] = self_pos[2]
+      castTo(self_pos, target_pos)
+    end
+  end , 5)
+end
+
+--[[ -- ]]--
+
+function validateSw(found_sw) -- Returns an angle if valid, "invalid" if invalid
+
+  local hdg_to_target = Vector.between(self.getPosition(), found_sw.getPosition()):heading('y')
+  if hdg_to_target < 0 then
+    hdg_to_target = hdg_to_target + 360
+  end
+
+  local target_hdg = found_sw.getRotation().y
+
+  hdg_to_target = clampTo60(hdg_to_target)
+  target_hdg = clampTo60(target_hdg)
+
+  local sum = hdg_to_target - target_hdg
+
+  if sum == 180 or sum == -180 or sum == 0 then
+    return hdg_to_target
+  else
+    return nil
+  end
+end
+
+--[[ -- ]]--
+
+function clampTo60(angle) -- Return arbitrary angles as rounded 60° increments
+  local res = math.floor(angle/60+0.5)*60
+  if res == 360 then
+    res = 0
+  end
+  return res -- Returns value closest to increments of 60
+end
+
+--[[ -- ]]--
+
+function castTo(sel_pos, tar_pos) -- Basic cast, handle tile_master_table
+  local ballcast = Physics.cast({
+    origin       = sel_pos,
+    direction    = Vector.between(sel_pos, tar_pos),
+    type         = 2,
+    size         = {1,1,1},
+    debug        = true,
+  })
+  local spacehit = 0
+  for _,item in ipairs(ballcast) do
+    if item.hit_object.hasTag("range-checked") and spacehit < 2 then
+      spacehit = spacehit + 1
+
+    elseif item.hit_object.hasTag("Space") and spacehit < 2 then
+      table.insert(tile_master_table.space, item.hit_object)
+      table.insert(tile_master_table.to_pulse, item.hit_object)
+      spacehit = spacehit + 1
+      item.hit_object.addTag("range-checked")
+
+    elseif item.hit_object.hasTag("spaceway") and spacehit < 2 then
+      table.insert(tile_master_table.sw, item.hit_object)
+    end
+  end
+end
+
+--[[ -- ]]--
+
+function highlightMasterTable(hl_color) -- Highlight on/off, takes a color argument
+  if hl_color == "off" then
+    for _,v1 in ipairs(tile_master_table.space) do
+      v1.highlightOff()
+      v1.removeTag("range-checked")
+    end
+    for _,v2 in ipairs(tile_master_table.sw) do
+      v2.highlightOff()
+    end
+    tile_master_table = {
+      sw = {},
+      space = {},
+      to_pulse = {}
+    }
+  else
+    for _,v1 in ipairs(tile_master_table.space) do
+      v1.highlightOn(hl_color)
+    end
+    for _,v2 in ipairs(tile_master_table.sw) do
+      v2.highlightOn(hl_color)
+    end
+  end
+end
+
+--[[ -- ]]--
