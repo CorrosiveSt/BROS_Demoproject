@@ -3,7 +3,6 @@ spacewayDetectZone_GUID = Global.getVar("spacewayDetectZone_GUID")
 -- Make variables for object references
 spacewayDetectZone = getObjectFromGUID(spacewayDetectZone_GUID)
 
-
 function onDrop(player_color)
   obj_under = Physics.cast({
     origin       = self.getPosition(),
@@ -24,9 +23,10 @@ function onDrop(player_color)
   end
 end
 
--- Clear collided status and call clear function of spacewayDetectZone
-function onPickUp()
+-- Clear variables and call clear function of spacewayDetectZone
+function onPickUp(color)
   collided = 0
+
   local color = "off"
   spacewayDetectZone.call("highlightMasterTable", color)
 end
