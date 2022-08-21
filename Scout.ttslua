@@ -1,7 +1,16 @@
--- Get needed GUIDS from Global
-spacewayDetectZone_GUID = Global.getVar("spacewayDetectZone_GUID")
--- Make variables for object references
-spacewayDetectZone = getObjectFromGUID(spacewayDetectZone_GUID)
+--[[
+  When placed, check for the tile under;
+  if tagExists(undiscovered) do
+    GeneratePlanets()
+  else
+    Check and highlight undiscovered planet tiles instead
+    Announce if no more undiscovered planets, prompt to move to next system
+--]]
+
+planetBag_GUID = Global.getVar("planetBag_GUID")
+planetBag = getObjectFromGUID(planetBag_GUID)
+
+--[[ -- -- ]]--
 
 function onDrop(player_color)
   obj_under = Physics.cast({
@@ -11,22 +20,44 @@ function onDrop(player_color)
     debug        = false,
   }) -- returns {{Vector point, Vector normal, float distance, Object hit_object}, ...}
   for _,obj in ipairs(obj_under) do
-    if obj.hit_object.hasTag("Space") then
-      obj.hit_object.highlightOn(player_color)
-      params = {
-        start_pos = obj.hit_object.getPosition(),
-        range = 2,
-        player_color = player_color
-      }
-      spacewayDetectZone.call("sendPulse_HL", params)
+    if obj.hit_object.hasTag("undiscovered_system") then
+      print("done!")
+      local tilepos = obj.hit_object.getPosition()
+      generatePlanets(math.random(0,7),obj.hit_object)
+      obj.hit_object.removeTag("undiscovered_system")
+      obj.hit_object.addTag("discovered_system")
+    elseif obj.hit_object.hasTag("discovered_system") then
+      printToAll("Already discovered!")
     end
   end
 end
 
--- Clear variables and call clear function of spacewayDetectZone
-function onPickUp(color)
-  collided = 0
+--[[ -- -- ]]--
 
-  local color = "off"
-  spacewayDetectZone.call("highlightMasterTable", color)
+function generatePlanets(amount, tile)
+  local pos_master = {
+    {0,0.3,0}, --mid
+    {0,0.3,2.3}, --up
+    {2,0.3,1.15}, --topright
+    {2,0.3,-1.15}, --bottomtright
+    {0,0.3,-2.3}, --bottom
+    {-2,0.3,-1.15}, --bottomleft
+    {-2,0.3,1.15} --topleft
+  }
+  print("System discovered. Scanning for planets...")
+  if amount > 0 then
+    for i=1,amount do
+      
+    end
+    for i=1,amount do
+      print(i .. "Planet(s) found.")
+      local params = {
+        position = Vector(table.remove(pos_master, math.random(1,#pos_master)))+tile.getPosition(),
+        smooth = false
+      }
+      planetBag.takeObject(params)
+    end
+  else
+    print("No planets found.")
+  end  
 end

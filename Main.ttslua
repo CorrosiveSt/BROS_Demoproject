@@ -1,5 +1,3 @@
 -- List known object GUIDs for reference
 scout_GUID = "fbc3fe"
-spacewayDetectZone_GUID = "dac1a7"
-targetTile_GUID = "c4467a"
-castTile_GUID = "e231be"
+planetBag_GUID = "8cef7f"
