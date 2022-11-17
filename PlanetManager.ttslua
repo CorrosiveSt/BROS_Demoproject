@@ -1,0 +1,40 @@
+// Bag GUIDs
+plaBagID_Orange = nil
+plaBagID_Red = nil
+plaBagID_Green1 = nil
+plaBagID_Green2 = nil
+plaBagID_Blue1 = nil
+plaBagID_Blue2 = nil
+plaBagID_Black = nil
+
+
+PlanetTiles = {
+    Orange = {
+        resPool = {"Steel", "Stone", "Gold"},
+        richness = 35
+    },
+    Red = {
+        resPool = {"Stone", "Oil", "Copper", "Stelrum"},
+        richness = 50
+    },
+    Green1 = {
+        resPool = {"Stone", "Oil", "Stelrum"},
+        richness = 150
+    },
+    Green2 = {
+        resPool = {"Stone", "Oil", "Copper", "Stelrum"},
+        richness = 100
+    },
+    Blue1 = {
+        resPool = {"Stelrum"},
+        richness = 175
+    },
+    Blue2 = {
+        resPool = {"Gold", "Stelrum"},
+        richness = 75
+    }
+    Black = {
+        resPool = {"Steel", "Copper", "Gold"},
+        richness = 60
+    }
+}

@@ -1,0 +1,62 @@
+// Bag GUIDs
+resBagID_Steel = nil
+resBagID_Stone = nil
+resBagID_Oil = nil
+resBagID_Copper = nil
+resBagID_Gold = nil
+resBagID_Stelrum = nil
+
+--[[ 
+    Possible resources, all in one table.
+    List resource and its necessary values like so:
+    
+    ResourceTiles = {
+        resource1 = {
+            value1 = "something",
+            value2 = "something else",
+            value3 = "something different"
+        },
+        resource2 = {
+            value1 = "never seen",
+            value2 = "sometimes seen",
+            value3 = "actually quite common"
+        }
+    }
+
+    This way it is easier to fetch values of a resource, kind of emulating some other languages'
+    classes and objects. I've grown to love tables.
+--]]
+
+ResourceTiles = {
+    Steel = {
+        chance = nil,
+        sellValue = nil,
+        bag = resBagOBJ_Steel,
+        resID = 1
+    },
+    Stone = {
+        chance = nil,
+        sellValue = nil,
+        bag = resBagOBJ_Stone
+    },
+    Oil = {
+        chance = nil,
+        sellValue = nil,
+        bag = resBagOBJ_Oil
+    },
+    Copper = {
+        chance = nil,
+        sellValue = nil,
+        bag = resBagOBJ_Copper
+    },
+    Gold = {
+        chance = nil,
+        sellValue = nil,
+        bag = resBagOBJ_Gold
+    },
+    Stelrum = {
+        chance = nil,
+        sellValue = nil,
+        bag = resBagOBJ_Stelrum
+    }
+}
